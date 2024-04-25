@@ -1,19 +1,30 @@
 #include "msr.h"
 
-int msr::init_gramm_struct(size_t nx, size_t ny, int p, int thread)
+int msr::set_template(size_t *ind, size_t n, size_t size)
 {
-  n = (nx + 1)*(ny + 1);
-  size = n + 1 + 6*(nx - 1)*(ny - 1) + 2*4*(nx - 1) + 2*4*(ny - 1) + 6 + 4;
+  erase();
+  indexes = ind;
+  this->n = n;
+  this->size = size;
+  data = new double[size];
+  if (data == nullptr)
+    return 1;
+  return 0;
+}
+
+int init_gramm_struct(size_t nx, size_t ny, int p, int thread, size_t **indexes_ret)
+{
+  size_t n = (nx + 1)*(ny + 1);
+  size_t size = n + 1 + 6*(nx - 1)*(ny - 1) + 2*4*(nx - 1) + 2*4*(ny - 1) + 6 + 4;
   size_t flag = 0;
   if (thread == 0)
   {
-    erase();
-    data = new double[size];
-    indexes = new size_t[size];
-    if (!data || !indexes)
+    *indexes_ret = new size_t[size];
+    if (!*indexes_ret)
       flag = 1;
   }
 
+  size_t *indexes = *indexes_ret;
   reduce_sum(p, &flag, 1);
   if (flag)
     return 1;
@@ -194,5 +205,47 @@ void msr::fill_gramm(size_t nx, size_t ny, int p, int thread, double a, double b
     data[indexes[j] + 2] = hx*hy/12.;
     data[indexes[j] + 3] = hx*hy/24.;
   }
-
 }
+
+#define F(I, J) (f(a + (I)*hx, b + (J)*hy))
+
+double bprod(size_t i, size_t j, size_t nx, size_t ny, double a, double b, double hx, double hy, double f(double, double))
+{
+  double w = hx*hy/192;
+  if (0 < i && 0 < j && i < nx && j < ny)
+    return w * (36*F(i, j) + 20*(F(i + 0.5, j) + F(i + 0.5, j + 0.5) + F(i, j + 0.5) + F(i - 0.5, j) + F(i - 0.5, j - 0.5) + F(i, j - 0.5))
+                + 2*(F(i + 1, j) + F(i + 1, j + 1) + F(i, j + 1) + F(i - 1, j) + F(i - 1, j + 1) + F(i, j - 1)));
+  if (i == 0 && 0 < j && j < ny)
+    return w * (18*F(i, j) + 20*(F(i + 0.5, j + 0.5) + F(i + 0.5, j)) + 10*(F(i, j + 0.5) + F(i, j - 0.5))
+                + 2*(F(i + 1, j + 1) + F(i + 1, j)) + (F(i, j + 1) + F(i, j - 1)));
+  if (i == nx && 0 < j && j < ny)
+    return w * (18*F(i, j) + 20*(F(i - 0.5, j - 0.5) + F(i - 0.5, j)) + 10*(F(i, j + 0.5) + F(i, j - 0.5))
+                + 2*(F(i - 1, j - 1) + F(i - 1, j)) + (F(i, j + 1) + F(i, j - 1)));
+  if (0 < i && i < nx && j == 0)
+    return w * (18*F(i, j) + 20*(F(i - 0.5, j - 0.5) + F(i, j - 0.5)) + 10*(F(i + 0.5, j) + F(i - 0.5, j))
+                + 2*(F(i - 1, j - 1) + F(i, j - 1)) + (F(i + 1, j) + F(i - 1, j)));
+  if (0 < i && i < nx && j == ny)
+    return w * (18*F(i, j) + 20*(F(i + 0.5, j + 0.5) + F(i, j + 0.5)) + 10*(F(i + 0.5, j) + F(i - 0.5, j))
+                + 2*(F(i + 1, j + 1) + F(i, j + 1)) + (F(i + 1, j) + F(i - 1, j)));
+  if (i == 0 && j == 0)
+    return w * (12*F(i, j) + 20*F(i + 0.5, j + 0.5) + 10*(F(i + 0.5, j) + F(i, j + 0.5)) + 2*F(i + 1, j + 1) + (F(i + 1, j) + F(i, j + 1)));
+  if (i == nx && j == ny)
+    return w * (12*F(i, j) + 20*F(i - 0.5, j - 0.5) + 10*(F(i - 0.5, j) + F(i, j - 0.5)) + 2*F(i - 1, j - 1) + (F(i - 1, j) + F(i, j - 1)));
+  if (i == 0 && j == ny)
+    return w * (6*F(i, j) + 10*(F(i + 0.5, j) + F(i, j - 0.5)) + (F(i + 1, j) + F(i, j - 1)));
+  if (i == nx && j == 0)
+    return w * (6*F(i, j) + 10*(F(i - 0.5, j) + F(i, j + 0.5)) + (F(i - 1, j) + F(i, j + 1)));
+  return 0;
+}
+
+void fill_right_side(size_t nx, size_t ny, double *right, int p, int thread, double a, double b, double c, double d, double f(double, double))
+{
+  size_t stride, start;
+  double hx = (b - a)/nx, hy = (d - c)/ny;
+  start_and_size(p, thread, ny, start, stride);
+
+  for (size_t i = start; i < start + stride; i++)
+    for (size_t j = 0; j <= nx; j++)
+      right[i*nx + j] = bprod(j, i, nx, ny, a, b, hx, hy, f);
+}
+

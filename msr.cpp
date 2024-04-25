@@ -37,10 +37,7 @@ int msr::copy_template(msr &x)
   }
   if (x.indexes != nullptr)
   {
-    indexes = new size_t[size];
-    if (!indexes)
-      return 1;
-    memcpy(indexes, x.indexes, size * sizeof(size_t));
+    indexes = x.indexes;
   }
   return 0;
 }

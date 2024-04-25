@@ -23,13 +23,14 @@ void start_and_size(unsigned int p, unsigned int thread, size_t n, size_t &start
 
 }
 
-void reduce_sum(int p, size_t *a, int n)
+template <class T>
+void reduce_sum(int p, T *a, size_t n)
 {
   static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
   static pthread_cond_t condvar_in = PTHREAD_COND_INITIALIZER;
   static pthread_cond_t condvar_out = PTHREAD_COND_INITIALIZER;
   static int threads_in = 0, threads_out = 0;
-  static size_t *pres = nullptr;
+  static T *pres = nullptr;
   pthread_mutex_lock(&mutex);
   if (pres == nullptr)
   {
@@ -37,7 +38,7 @@ void reduce_sum(int p, size_t *a, int n)
   }
   else
   {
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
     {
       pres[i] += a[i];
     }
@@ -55,7 +56,7 @@ void reduce_sum(int p, size_t *a, int n)
   }
   if (pres != a)
   {
-    for (int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
       a[i] = pres[i];
   }
   threads_out++;
