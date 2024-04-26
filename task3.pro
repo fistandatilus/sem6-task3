@@ -2,7 +2,8 @@ QT += widgets
 
 HEADERS       = msr.h \
                 thread_related.h \
-                functions.h
+                functions.h \
+                solve.h
 SOURCES       = main.cpp \
                 msr.cpp \
                 solve.cpp \

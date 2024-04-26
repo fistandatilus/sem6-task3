@@ -44,7 +44,10 @@ double bprod(size_t i, size_t j, size_t nx, size_t ny, double a, double b, doubl
 void fill_right_side(size_t nx, size_t ny, double *right, int p, int thread, double a, double b, double c, double d, double f(double, double));
 int init_gramm_struct(size_t nx, size_t ny, int p, int thread, size_t **indexes_ret);
 
-int solve(msr &a, double *b, msr &m, double *d, double *x, size_t n, double *r, double *u, double *v, int p, int thread);
+void inv_m_mul_vec(msr &m, double *d, double *r, double *v, size_t start, size_t stride);
+int solve(msr &a, double *b, msr &m, double *d, double *x, size_t n, double *r, double *u, double *v, int p, int thread, int max_it);
 void mul_msr_by_vec(msr &a, double *x, double *ret, size_t start, size_t stride);
+double dot_prod(const double *u, const double *v, size_t start, size_t stride);
 
+double eval_approx(msr &matr, double x, double y, double a, double b, double c, double d);
 #endif //MSR_H

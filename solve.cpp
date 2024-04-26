@@ -1,6 +1,7 @@
 #include "msr.h"
 
 #define UNFOLD 8
+#define R_PERIOD 50
 
 void mul_msr_by_vec(msr &a, double *x, double *ret, size_t start, size_t stride)
 {
@@ -33,12 +34,44 @@ static inline void subtract_vecs_coeff(double *a, double *b, double c, int n)
   }
 }
 
-int inv_m_mul_vec(msr &m, double *d, double *r, double *v, size_t start, size_t stride)
+void inv_m_mul_vec(msr &m, double *d, double *r, double *v, size_t start, size_t stride)
 {
-  for (size_t j = start + stride - 1; j >= start; j++)
-  {
+  memcpy(v + start, r + start, stride*sizeof(double));
 
+  for (size_t i = start; i < start + stride; i++)
+  {
+    size_t l;
+    for (l = 0; m.indexes[m.indexes[i]+l] < i; l++);
+    for (;m.indexes[m.indexes[i]+l] < start + stride; l++)
+    {
+      size_t cur_line = m.indexes[m.indexes[i]+l];
+      size_t k = bin_search(m.indexes + m.indexes[cur_line], m.indexes[cur_line + 1] - m.indexes[cur_line], i);
+      v[m.indexes[m.indexes[i]+l]] -= v[i]*m.data[cur_line + k]/m.data[i];
+    }
   }
+
+  for (size_t i = start; i < start + stride; i++)
+    v[i] /= d[i];
+
+  for (size_t i = start; i < start + stride; i++)
+  {
+    size_t l;
+    for (l = 0; m.indexes[m.indexes[i]+l] < start; l++);
+    for (;m.indexes[m.indexes[i]+l] < i; l++)
+    {
+      size_t cur_line = m.indexes[m.indexes[i]+l];
+      size_t k = bin_search(m.indexes + m.indexes[cur_line], m.indexes[cur_line + 1] - m.indexes[cur_line], i);
+      v[m.indexes[m.indexes[i]+l]] -= v[i]*m.data[cur_line + k]/m.data[i];
+    }
+  }
+}
+
+double dot_prod(const double *u, const double *v, size_t start, size_t stride)
+{
+  double res = 0;
+  for (size_t i = start; i < start + stride; i++)
+    res += u[i] * v[i];
+  return res;
 }
 
 int solve(msr &a, double *b, msr &m, double *d, double *x, size_t n, double *r, double *u, double *v, int p, int thread, int max_it)
@@ -48,7 +81,7 @@ int solve(msr &a, double *b, msr &m, double *d, double *x, size_t n, double *r, 
 
   memset(x + start, 0, stride*(sizeof(double)));
   mul_msr_by_vec(a, x, r, start, stride);
-  subtract_vecs_coeff(r, b, 1, n);
+  subtract_vecs_coeff(r + start, b + start, 1, stride);
   double eps = 0;
 
   for (size_t i = start; i < start + stride; i++)
@@ -56,8 +89,25 @@ int solve(msr &a, double *b, msr &m, double *d, double *x, size_t n, double *r, 
   reduce_sum(p, &eps, 1);
   eps *= EPS*EPS;
 
+  double t;
   for (int iter = 1; iter <= max_it; iter++)
   {
     inv_m_mul_vec(m, d, r, v, start, stride);
+    mul_msr_by_vec(a, v, u, start, stride);
+    double c[2];
+    c[0] = dot_prod(v, r, start, stride);
+    c[1] = dot_prod(u, v, start, stride);
+    reduce_sum(p, c, 2);
+    if (c[0] <= eps || c[1] <= eps)
+      return 0;
+    t = c[0]/c[1];
+    subtract_vecs_coeff(x + start, v + start, t, stride);
+    subtract_vecs_coeff(r + start, u + start, t, stride);
+    if (iter%R_PERIOD == R_PERIOD - 1)
+    {
+    mul_msr_by_vec(a, x, r, start, stride);
+    subtract_vecs_coeff(r + start, b + start, 1, stride);
+    }
   }
+  return 1;
 }
