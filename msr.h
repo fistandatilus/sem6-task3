@@ -32,6 +32,7 @@ struct msr
   {
     erase();
   }
+  msr() = default;
   msr(msr &) = delete;
   msr &operator=(msr &) = delete;
   int copy(msr &x);

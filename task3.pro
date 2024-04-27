@@ -3,7 +3,8 @@ QT += widgets
 HEADERS       = msr.h \
                 thread_related.h \
                 functions.h \
-                solve.h
+                solve.h \
+                approximation.h
 SOURCES       = main.cpp \
                 msr.cpp \
                 solve.cpp \
@@ -12,7 +13,8 @@ SOURCES       = main.cpp \
                 precision_checks.cpp \
                 thread_related.cpp \
                 functions.cpp \
-                initializations.cpp
+                initializations.cpp \
+                approximation.cpp
 TARGET        = a.out
 
 DISTFILES += \
