@@ -93,22 +93,25 @@ int solve(msr &a, double *b, msr &m, double *d, double *x, double *r, double *u,
   double t;
   for (iter = 1; iter <= max_it; iter++)
   {
+    //memcpy(v + start, r + start, stride*(sizeof(double)));
     inv_m_mul_vec(m, d, r, v, start, stride);
+    reduce_sum<double>(p);
     mul_msr_by_vec(a, v, u, start, stride);
     double c[2];
     c[0] = dot_prod(v, r, start, stride);
     c[1] = dot_prod(u, v, start, stride);
     reduce_sum(p, c, 2);
+    //printf("thread = %d, iter = %d, c0 = %le, c1 = %le, eps = %le\n", thread, iter, c[0], c[1], eps);
     if (c[0] <= eps || c[1] <= eps)
       return 0;
     t = c[0]/c[1];
     subtract_vecs_coeff(x + start, v + start, t, stride);
     subtract_vecs_coeff(r + start, u + start, t, stride);
-    if (iter%R_PERIOD == R_PERIOD - 1)
-    {
-    mul_msr_by_vec(a, x, r, start, stride);
-    subtract_vecs_coeff(r + start, b + start, 1, stride);
-    }
+//    if (iter%R_PERIOD == R_PERIOD - 1)
+//    {
+//    mul_msr_by_vec(a, x, r, start, stride);
+//    subtract_vecs_coeff(r + start, b + start, 1, stride);
+//    }
   }
   return 1;
 }

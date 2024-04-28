@@ -220,34 +220,35 @@ void fill_gramm(msr &matr, size_t nx, size_t ny, int p, int thread, double a, do
   }
 }
 
-#define F(I, J) (f(a + (I)*hx, b + (J)*hy))
+#define F(I, J) (f(a + (I)*hx, b - (J)*hy))
 
 double bprod(size_t i, size_t j, size_t nx, size_t ny, double a, double b, double hx, double hy, double f(double, double))
 {
   double w = hx*hy/192;
   if (0 < i && 0 < j && i < nx && j < ny)
-    return w * (36*F(i, j) + 20*(F(i + 0.5, j) + F(i + 0.5, j + 0.5) + F(i, j + 0.5) + F(i - 0.5, j) + F(i - 0.5, j - 0.5) + F(i, j - 0.5))
-                + 2*(F(i + 1, j) + F(i + 1, j + 1) + F(i, j + 1) + F(i - 1, j) + F(i - 1, j + 1) + F(i, j - 1)));
+    return w * (36*F(i, j) + 20*(F(i + 0.5, j) + F(i + 0.5, j - 0.5) + F(i, j - 0.5) + F(i - 0.5, j) + F(i - 0.5, j + 0.5) + F(i, j + 0.5))
+                + 4*(F(i + 1, j - 0.5) + F(i + 0.5, j + 1) + F(i - 0.5, j - 0.5) + F(i - 1, j + 0.5) + F(i - 0.5, j - 1) + F(i + 0.5, j + 0.5))
+                + 2*(F(i + 1, j) + F(i + 1, j - 1) + F(i, j - 1) + F(i - 1, j) + F(i - 1, j + 1) + F(i, j + 1)));
   if (i == 0 && 0 < j && j < ny)
-    return w * (18*F(i, j) + 20*(F(i + 0.5, j + 0.5) + F(i + 0.5, j)) + 10*(F(i, j + 0.5) + F(i, j - 0.5))
-                + 2*(F(i + 1, j + 1) + F(i + 1, j)) + (F(i, j + 1) + F(i, j - 1)));
+    return w * (18*F(i, j) + 20*(F(i + 0.5, j - 0.5) + F(i + 0.5, j)) + 10*(F(i, j + 0.5) + F(i, j - 0.5))
+                + 4*(F(i + 0.5, j - 1) + F(i + 1, j - 0.5) + F(i + 0.5, j + 0.5)) + 2*(F(i + 1, j - 1) + F(i + 1, j)) + (F(i, j + 1) + F(i, j - 1)));
   if (i == nx && 0 < j && j < ny)
-    return w * (18*F(i, j) + 20*(F(i - 0.5, j - 0.5) + F(i - 0.5, j)) + 10*(F(i, j + 0.5) + F(i, j - 0.5))
-                + 2*(F(i - 1, j - 1) + F(i - 1, j)) + (F(i, j + 1) + F(i, j - 1)));
+    return w * (18*F(i, j) + 20*(F(i - 0.5, j + 0.5) + F(i - 0.5, j)) + 10*(F(i, j - 0.5) + F(i, j + 0.5))
+                + 4*(F(i - 0.5, j + 1) + F(i - 1, j + 0.5) + F(i - 0.5, j - 0.5)) + 2*(F(i - 1, j + 1) + F(i - 1, j)) + (F(i, j - 1) + F(i, j + 1)));
   if (0 < i && i < nx && j == 0)
-    return w * (18*F(i, j) + 20*(F(i - 0.5, j - 0.5) + F(i, j - 0.5)) + 10*(F(i + 0.5, j) + F(i - 0.5, j))
-                + 2*(F(i - 1, j - 1) + F(i, j - 1)) + (F(i + 1, j) + F(i - 1, j)));
+    return w * (18*F(i, j) + 20*(F(i - 0.5, j + 0.5) + F(i, j + 0.5)) + 10*(F(i + 0.5, j) + F(i - 0.5, j))
+                + 4*(F(i - 1, j + 0.5) + F(i - 0.5, j + 1) + F(i + 0.5, j + 0.5)) + 2*(F(i - 1, j + 1) + F(i, j + 1)) + (F(i + 1, j) + F(i - 1, j)));
   if (0 < i && i < nx && j == ny)
-    return w * (18*F(i, j) + 20*(F(i + 0.5, j + 0.5) + F(i, j + 0.5)) + 10*(F(i + 0.5, j) + F(i - 0.5, j))
-                + 2*(F(i + 1, j + 1) + F(i, j + 1)) + (F(i + 1, j) + F(i - 1, j)));
+    return w * (18*F(i, j) + 20*(F(i + 0.5, j - 0.5) + F(i, j - 0.5)) + 10*(F(i - 0.5, j) + F(i + 0.5, j))
+                + 4*(F(i + 1, j - 0.5) + F(i + 0.5, j - 1) + F(i - 0.5, j - 0.5)) + 2*(F(i + 1, j - 1) + F(i, j - 1)) + (F(i - 1, j) + F(i + 1, j)));
   if (i == 0 && j == 0)
-    return w * (12*F(i, j) + 20*F(i + 0.5, j + 0.5) + 10*(F(i + 0.5, j) + F(i, j + 0.5)) + 2*F(i + 1, j + 1) + (F(i + 1, j) + F(i, j + 1)));
+    return w * (6*F(i, j) + 4*F(i + 0.5, j + 0.5) + 10*(F(i + 0.5, j) + F(i, j + 0.5)) + (F(i + 1, j) + F(i, j + 1)));
   if (i == nx && j == ny)
-    return w * (12*F(i, j) + 20*F(i - 0.5, j - 0.5) + 10*(F(i - 0.5, j) + F(i, j - 0.5)) + 2*F(i - 1, j - 1) + (F(i - 1, j) + F(i, j - 1)));
+    return w * (6*F(i, j) + 4*F(i - 0.5, j - 0.5) + 10*(F(i - 0.5, j) + F(i, j - 0.5)) + (F(i - 1, j) + F(i, j - 1)));
   if (i == 0 && j == ny)
-    return w * (6*F(i, j) + 10*(F(i + 0.5, j) + F(i, j - 0.5)) + (F(i + 1, j) + F(i, j - 1)));
+    return w * (12*F(i, j) + 10*(F(i + 0.5, j) + F(i, j - 0.5)) + 20*F(i + 0.5, j - 0.5) + 4*(F(i + 0.5, j - 1) + F(i + 1, j - 0.5)) + 2*F(i + 1, j - 1) + (F(i + 1, j) + F(i, j - 1)));
   if (i == nx && j == 0)
-    return w * (6*F(i, j) + 10*(F(i - 0.5, j) + F(i, j + 0.5)) + (F(i - 1, j) + F(i, j + 1)));
+    return w * (12*F(i, j) + 10*(F(i - 0.5, j) + F(i, j + 0.5)) + 20*F(i - 0.5, j + 0.5) + 4*(F(i - 0.5, j + 1) + F(i - 1, j + 0.5)) + 2*F(i - 1, j + 1) + (F(i - 1, j) + F(i, j + 1)));
   return 0;
 }
 
@@ -259,6 +260,6 @@ void fill_right_side(size_t nx, size_t ny, double *right, int p, int thread, dou
 
   for (size_t i = start; i < start + stride; i++)
     for (size_t j = 0; j <= nx; j++)
-      right[i*(nx + 1) + j] = bprod(j, ny - i, nx, ny, a, c, hx, hy, f);
+      right[i*(nx + 1) + j] = bprod(j, i, nx, ny, a, d, hx, hy, f);
 }
 
