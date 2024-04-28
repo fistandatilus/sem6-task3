@@ -13,25 +13,26 @@ size_t bin_search(size_t *a, size_t n, size_t x)
 }
 
 
-int form_preconditioner(msr &a, msr &precond, double *diag, int p, int thread)
+int form_preconditioner(msr &a, msr &precond, double *diag, double eps, int p, int thread)
 {
   size_t ret = 0;
-  if (p == 0)
+  if (thread == 0)
     ret = precond.copy_template(a);
   reduce_sum(p, &ret, 1);
   if (ret)
     return ret;
   size_t start, stride;
   start_and_size(p, thread, a.n, start, stride);
-  double eps = a.norm * EPS;
+  eps = a.norm * eps;
   if (stride != 0)
   {
     for (size_t i = start; i - start < stride && ret == 0; i++)
     {
       double s = 0;
+      size_t row_len = a.indexes[i+1] - a.indexes[i];
       size_t l;
-      for (l = 0; a.indexes[a.indexes[i]+l] < start; l++);
-      for (; a.indexes[a.indexes[i]+l] < i; l++)
+      for (l = 0; l < row_len && a.indexes[a.indexes[i]+l] < start; l++);
+      for (; l < row_len && a.indexes[a.indexes[i]+l] < i; l++)
       {
         size_t j = a.indexes[a.indexes[i]+l];
         size_t k = bin_search(a.indexes + a.indexes[j], a.indexes[j+1] - a.indexes[j], i);
@@ -44,13 +45,13 @@ int form_preconditioner(msr &a, msr &precond, double *diag, int p, int thread)
       precond.data[i] = sqrt(s);
       diag[i] = copysign(1., s);
 
-      for (size_t jc = 0; jc < a.indexes[i+1] - a.indexes[i] && a.indexes[a.indexes[i] + jc] < i; jc++)
+      for (size_t jc = 0; jc < row_len && a.indexes[a.indexes[i] + jc] < i; jc++)
       {
         size_t j = a.indexes[a.indexes[i] + jc];
-        s = a.data[a.indexes[i] + j];
-        size_t lc;
-        for (lc = 0; a.indexes[a.indexes[i]+lc] < start; lc++);
-        for (; a.indexes[a.indexes[i]+lc] < i; l++)
+        s = a.data[a.indexes[i] + jc];
+        size_t lc = 0;
+        for (lc = 0; lc < row_len && a.indexes[a.indexes[i]+lc] < start; lc++);
+        for (; lc < row_len && a.indexes[a.indexes[i]+lc] < i; lc++)
         {
           size_t l = a.indexes[a.indexes[i]+lc];
           size_t ki = bin_search(a.indexes + a.indexes[l], a.indexes[l+1] - a.indexes[l], i);
@@ -67,3 +68,11 @@ int form_preconditioner(msr &a, msr &precond, double *diag, int p, int thread)
     return 2;
   return 0;
 }
+
+/*
+if(thread == 7)
+{
+  printf("thread = %d, i = %lu, j = %lu, a.indexes[i] = %lu\n", thread,i, j, a.indexes[i]);
+  printf("thread = %d, a.indexes[a.indexes[i] + j] = %lu\n", thread, a.indexes[a.indexes[i] + j]);
+}
+*/

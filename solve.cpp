@@ -40,9 +40,10 @@ void inv_m_mul_vec(msr &m, double *d, double *r, double *v, size_t start, size_t
 
   for (size_t i = start; i < start + stride; i++)
   {
-    size_t l;
-    for (l = 0; m.indexes[m.indexes[i]+l] < i; l++);
-    for (;m.indexes[m.indexes[i]+l] < start + stride; l++)
+    size_t l, row_len = m.indexes[i+1] - m.indexes[i];
+
+    for (l = 0; l < row_len && m.indexes[m.indexes[i]+l] < i; l++);
+    for (; l < row_len && m.indexes[m.indexes[i]+l] < start + stride; l++)
     {
       size_t cur_line = m.indexes[m.indexes[i]+l];
       size_t k = bin_search(m.indexes + m.indexes[cur_line], m.indexes[cur_line + 1] - m.indexes[cur_line], i);
@@ -55,9 +56,9 @@ void inv_m_mul_vec(msr &m, double *d, double *r, double *v, size_t start, size_t
 
   for (size_t i = start; i < start + stride; i++)
   {
-    size_t l;
-    for (l = 0; m.indexes[m.indexes[i]+l] < start; l++);
-    for (;m.indexes[m.indexes[i]+l] < i; l++)
+    size_t l, row_len = m.indexes[i+1] - m.indexes[i];
+    for (l = 0; l < row_len && m.indexes[m.indexes[i]+l] < start; l++);
+    for (; l < row_len && m.indexes[m.indexes[i]+l] < i; l++)
     {
       size_t cur_line = m.indexes[m.indexes[i]+l];
       size_t k = bin_search(m.indexes + m.indexes[cur_line], m.indexes[cur_line + 1] - m.indexes[cur_line], i);
@@ -74,9 +75,9 @@ double dot_prod(const double *u, const double *v, size_t start, size_t stride)
   return res;
 }
 
-int solve(msr &a, double *b, msr &m, double *d, double *x, size_t n, double *r, double *u, double *v, int p, int thread, int max_it)
+int solve(msr &a, double *b, msr &m, double *d, double *x, double *r, double *u, double *v, double desired_eps, int p, int thread, int max_it, int &iter)
 {
-  size_t stride, start;
+  size_t stride, start, n = a.n;
   start_and_size(p, thread, n, start, stride);
 
   memset(x + start, 0, stride*(sizeof(double)));
@@ -87,10 +88,10 @@ int solve(msr &a, double *b, msr &m, double *d, double *x, size_t n, double *r, 
   for (size_t i = start; i < start + stride; i++)
     eps += fabs(b[i]);
   reduce_sum(p, &eps, 1);
-  eps *= EPS*EPS;
+  eps *= desired_eps * desired_eps;
 
   double t;
-  for (int iter = 1; iter <= max_it; iter++)
+  for (iter = 1; iter <= max_it; iter++)
   {
     inv_m_mul_vec(m, d, r, v, start, stride);
     mul_msr_by_vec(a, v, u, start, stride);

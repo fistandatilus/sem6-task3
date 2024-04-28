@@ -12,6 +12,11 @@ int msr::set_template(size_t *ind, size_t n, size_t size)
   return 0;
 }
 
+size_t size_by_nx_ny(size_t nx, size_t ny)
+{
+  return (nx + 1)*(ny + 1) + 1 + 6*(nx - 1)*(ny - 1) + 2*4*(nx - 1) + 2*4*(ny - 1) + 6 + 4;
+}
+
 int init_gramm_struct(size_t nx, size_t ny, int p, int thread, size_t **indexes_ret)
 {
   size_t n = (nx + 1)*(ny + 1);
@@ -24,15 +29,17 @@ int init_gramm_struct(size_t nx, size_t ny, int p, int thread, size_t **indexes_
       flag = 1;
   }
 
-  size_t *indexes = *indexes_ret;
   reduce_sum(p, &flag, 1);
+  size_t *indexes = *indexes_ret;
+  //printf ("thread = %d, flag = %lu, *indexes_ret = %lu\n", thread, flag, (size_t)*indexes_ret, (size_t)*indexes));
+  //printf ("thread = %d, flag = %lu, *indexes_ret = %lu\n", thread, flag, (size_t)*indexes);
   if (flag)
     return 1;
 
   size_t stride, start;
-  start_and_size(p, thread, ny, start, stride);
+  start_and_size(p, thread, ny + 1, start, stride);
 
-  if (thread == 0)
+  if (start == 0)
   {
     indexes[0] = n + 1;
     indexes[indexes[0]]     = 1;
@@ -59,7 +66,7 @@ int init_gramm_struct(size_t nx, size_t ny, int p, int thread, size_t **indexes_
   size_t index_step = (6*nx + 2);
   size_t index_offset = n + 1 + (start - 1)*index_step + 4*(nx + 1) - 3;
 
-  if (thread == p-1)
+  if (start + stride == ny + 1)
   {
     indexes[n] = size;
 
@@ -80,8 +87,8 @@ int init_gramm_struct(size_t nx, size_t ny, int p, int thread, size_t **indexes_
     }
     base = n - 1;
     indexes[base] = loc_index_offset + 4*nx - 1;
-    indexes[indexes[base]]     = base - (nx - 1);
-    indexes[indexes[base] + 1] = base + 1;
+    indexes[indexes[base]]     = base - (nx + 1);
+    indexes[indexes[base] + 1] = base - 1;
     stride--;
 
   }
@@ -105,27 +112,30 @@ int init_gramm_struct(size_t nx, size_t ny, int p, int thread, size_t **indexes_
       indexes[indexes[j] + 4] = j + nx;
       indexes[indexes[j] + 5] = j + nx + 1;
     }
-    base = i*nx + nx - 1;
-    indexes[base] = index_offset + stride - 4;
+    base = (i + 1)*(nx + 1) - 1;
+    indexes[base] = index_offset + index_step - 4;
     indexes[indexes[base]]     = base - (nx + 1);
-    indexes[indexes[base] + 1] = base - nx;
-    indexes[indexes[base] + 2] = base + 1;
+    indexes[indexes[base] + 1] = base - 1;
+    indexes[indexes[base] + 2] = base + nx;
     indexes[indexes[base] + 3] = base + nx + 1;
   }
 
   return 0;
 }
 
-void msr::fill_gramm(size_t nx, size_t ny, int p, int thread, double a, double b, double c, double d)
+void fill_gramm(msr &matr, size_t nx, size_t ny, int p, int thread, double a, double b, double c, double d)
 {
   size_t stride, start;
-  start_and_size(p, thread, ny, start, stride);
+  start_and_size(p, thread, ny + 1, start, stride);
 
   double hx = (b - a)/nx;
   double hy = (d - c)/ny;
-  norm = hx*hy;
+  matr.norm = hx*hy;
+  double *data = matr.data;
+  size_t *indexes = matr.indexes;
+  size_t n = matr.n;
 
-  if (thread == 0)
+  if (start == 0)
   {
     size_t j = 0;
 
@@ -151,7 +161,7 @@ void msr::fill_gramm(size_t nx, size_t ny, int p, int thread, double a, double b
     start = 1;
   }
 
-  if (thread == p - 1)
+  if (start + stride == ny + 1)
   {
     size_t j = (nx + 1)*ny;
 
@@ -178,9 +188,12 @@ void msr::fill_gramm(size_t nx, size_t ny, int p, int thread, double a, double b
     stride--;
   }
 
+  //printf("thread = %d, start = %lu, stride = %lu\n", thread, start, stride);
+
+
   for (size_t i = start; i < start + stride; i++)
   {
-    size_t j = i*nx;
+    size_t j = i*(nx + 1);
 
     data[j]              = hx*hy/4;
     data[indexes[j]]     = hx*hy/24.;
@@ -242,10 +255,10 @@ void fill_right_side(size_t nx, size_t ny, double *right, int p, int thread, dou
 {
   size_t stride, start;
   double hx = (b - a)/nx, hy = (d - c)/ny;
-  start_and_size(p, thread, ny, start, stride);
+  start_and_size(p, thread, ny + 1, start, stride);
 
   for (size_t i = start; i < start + stride; i++)
     for (size_t j = 0; j <= nx; j++)
-      right[i*nx + j] = bprod(j, i, nx, ny, a, b, hx, hy, f);
+      right[i*(nx + 1) + j] = bprod(j, ny - i, nx, ny, a, c, hx, hy, f);
 }
 

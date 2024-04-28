@@ -3,7 +3,6 @@ QT += widgets
 HEADERS       = msr.h \
                 thread_related.h \
                 functions.h \
-                solve.h \
                 approximation.h
 SOURCES       = main.cpp \
                 msr.cpp \
