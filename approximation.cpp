@@ -54,8 +54,8 @@ status approximation::init(double a, double b, double c, double d, size_t nx, si
   }
 
   fill_gramm(gramm, nx, ny, p, thread, a, b, c, d);
-  if (thread == 0)
-    gramm.print(n);
+//  if (thread == 0)
+//    gramm.print(n);
 
 
   reduce_sum<int>(p);
@@ -74,13 +74,13 @@ status approximation::init(double a, double b, double c, double d, size_t nx, si
 status approximation::init_function(double (*f)(double, double), int max_it, int &it, double eps, int p, int thread)
 {
   fill_right_side(nx, ny, right_side, p, thread, a, b, c, d, f);
-  if (thread == 0)
-    print_vec(right_side, (nx+1)*(ny+1), (nx+1)*(ny+1));
+//  if (thread == 0)
+//    print_vec(right_side, (nx+1)*(ny+1), (nx+1)*(ny+1));
   this->f = f;
   reduce_sum<double>(p);
   int ret = solve(gramm, right_side, precond, diag, coeffs, r, u, v, eps, p, thread, max_it, it);
-  if (thread == 0)
-    print_vec(coeffs, (nx+1)*(ny+1), (nx+1)*(ny+1));
+//  if (thread == 0)
+//    print_vec(coeffs, (nx+1)*(ny+1), (nx+1)*(ny+1));
   if(ret)
     return status::error_out_of_iterations;
   return status::ok;
