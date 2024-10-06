@@ -17,7 +17,7 @@ int form_preconditioner(msr &a, msr &precond, double *diag, double eps, int p, i
 {
   size_t ret = 0;
   if (thread == 0)
-    ret = precond.copy_template(a);
+    ret = precond.copy(a);
   reduce_sum(p, &ret, 1);
   if (ret)
     return ret;

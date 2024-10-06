@@ -74,6 +74,7 @@ status approximation::init(double a, double b, double c, double d, size_t nx, si
 status approximation::init_function(double (*f)(double, double), int max_it, int &it, double eps, int p, int thread)
 {
   fill_right_side(nx, ny, right_side, p, thread, a, b, c, d, f);
+  init_coeffs(nx, ny, coeffs, p, thread, a, b, c, d, f);
 //  if (thread == 0)
 //    print_vec(right_side, (nx+1)*(ny+1), (nx+1)*(ny+1));
   this->f = f;

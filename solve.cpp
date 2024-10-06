@@ -82,7 +82,8 @@ int solve(msr &a, double *b, msr &m, double *d, double *x, double *r, double *u,
   size_t stride, start, n = a.n;
   start_and_size(p, thread, n, start, stride);
 
-  memset(x + start, 0, stride*(sizeof(double)));
+  //memset(x + start, 0, stride*(sizeof(double)));
+    //now it is inited outside
   mul_msr_by_vec(a, x, r, start, stride);
   subtract_vecs_coeff(r + start, b + start, 1, stride);
   double eps = 0;
@@ -112,7 +113,7 @@ int solve(msr &a, double *b, msr &m, double *d, double *x, double *r, double *u,
     c[1] = dot_prod(u, v, start, stride);
     reduce_sum(p, c, 2);
     //printf("thread = %d, iter = %d, c0 = %le, c1 = %le, eps = %le\n", thread, iter, c[0], c[1], eps);
-    if (fabs(c[0]) <= eps || fabs(c[1]) <= eps)
+    if (fabs(c[0]) <= eps && fabs(c[1]) <= eps)
       return 0;
     t = c[0]/c[1];
     //printf("thread = %d, c0 = %le, c1 = %le,  t = %le\n", thread, c[0], c[1], t);

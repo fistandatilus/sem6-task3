@@ -1,29 +1,5 @@
 #include "msr.h"
 
-int msr::copy(msr &x)
-{
-  erase();
-  n = x.n;
-  size = x.size;
-  norm = x.norm;
-  if (x.data != nullptr)
-  {
-    data = new double[size];
-    if (!data)
-      return 1;
-    memcpy(data, x.data, size * sizeof(double));
-  }
-  if (x.indexes != nullptr)
-  {
-    indexes = new size_t[size];
-    if (!indexes)
-      return 1;
-    memcpy(indexes, x.indexes, size * sizeof(size_t));
-  }
-  return 0;
-}
-
-
 int msr::copy_template(msr &x)
 {
   erase();
@@ -39,6 +15,15 @@ int msr::copy_template(msr &x)
   {
     indexes = x.indexes;
   }
+  return 0;
+}
+
+int msr::copy(msr &x)
+{
+  int ret = copy_template(x);
+  if (ret)
+    return ret;
+  memcpy(data, x.data, size * sizeof(double));
   return 0;
 }
 

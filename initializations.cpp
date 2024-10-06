@@ -263,3 +263,13 @@ void fill_right_side(size_t nx, size_t ny, double *right, int p, int thread, dou
       right[i*(nx + 1) + j] = bprod(j, i, nx, ny, a, d, hx, hy, f);
 }
 
+void init_coeffs(size_t nx, size_t ny, double *coeffs, int p, int thread, double a, double b, double c, double d, double f(double, double))
+{
+  size_t stride, start;
+  double hx = (b - a)/nx, hy = (d - c)/ny;
+  start_and_size(p, thread, ny + 1, start, stride);
+
+  for (size_t i = start; i < start + stride; i++)
+    for (size_t j = 0; j <= nx; j++)
+      coeffs[i*(nx + 1) + j] = f(a + j*hx, d - i*hy);
+}

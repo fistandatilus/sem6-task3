@@ -41,6 +41,7 @@ int form_preconditioner(msr &a, msr &precond, double *diag, double eps, int p, i
 size_t bin_search(size_t *a, size_t n, size_t x);
 double bprod(size_t i, size_t j, size_t nx, size_t ny, double a, double b, double hx, double hy, double f(double, double));
 void fill_right_side(size_t nx, size_t ny, double *right, int p, int thread, double a, double b, double c, double d, double f(double, double));
+void init_coeffs(size_t nx, size_t ny, double *coeffs, int p, int thread, double a, double b, double c, double d, double f(double, double));
 int init_gramm_struct(size_t nx, size_t ny, int p, int thread, size_t **indexes_ret);
 void fill_gramm(msr &matr, size_t nx, size_t ny, int p, int thread, double a, double b, double c, double d);
 size_t size_by_nx_ny(size_t nx, size_t ny);
